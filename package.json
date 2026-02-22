@@ -1,9 +1,8 @@
 {
-  "name": "manucap-desktop",
-  "version": "1.0.0",
-  "description": "Desktop application for manucap library",
+  "name": "manucapel",
+  "version": "0.0.1",
+  "description": "",
   "main": "dist-electron/main.js",
-  "author": "Your Name",
   "license": "MIT",
   "scripts": {
     "dev": "vite",
