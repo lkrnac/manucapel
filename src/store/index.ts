@@ -1,11 +1,13 @@
 import { configureStore } from '@reduxjs/toolkit'
 import fileReducer from './slices/fileSlice'
 import appReducer from './slices/appSlice'
+import { Reducers as manuCapReducers } from 'manucap'
 
 export const store = configureStore({
   reducer: {
     file: fileReducer,
-    app: appReducer
+    app: appReducer,
+    ...manuCapReducers
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

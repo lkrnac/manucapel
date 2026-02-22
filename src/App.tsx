@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useAppDispatch, useAppSelector } from './hooks/useRedux'
 import { openFile, saveFile, setContent, clearFile } from './store/slices/fileSlice'
 import { initializeApp, setUpdateAvailable, setUpdateDownloaded, setUpdateProgress } from './store/slices/appSlice'
+import TestApp from "@/TestApp.tsx";
 
 function App() {
   const dispatch = useAppDispatch()
@@ -49,9 +50,9 @@ function App() {
     dispatch(saveFile({ content, defaultPath: filePath || undefined }))
   }
 
-  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    dispatch(setContent(e.target.value))
-  }
+  // const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  //   dispatch(setContent(e.target.value))
+  // }
 
   return (
     <div className="app">
@@ -77,12 +78,13 @@ function App() {
           {isDirty && <span className="dirty-indicator">*</span>}
         </div>
 
-        <textarea
-          className="content-editor"
-          value={content}
-          onChange={handleContentChange}
-          placeholder="Open or create a file to start editing..."
-        />
+        <TestApp />
+        {/*<textarea*/}
+        {/*  className="content-editor"*/}
+        {/*  value={content}*/}
+        {/*  onChange={handleContentChange}*/}
+        {/*  placeholder="Open or create a file to start editing..."*/}
+        {/*/>*/}
       </main>
 
       {updateAvailable && !updateDownloaded && (
