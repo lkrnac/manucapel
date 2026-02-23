@@ -7,36 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  lint-and-test:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci --force
-
-      - name: Run linter
-        run: npm run lint
-
-      - name: Run typecheck
-        run: npm run typecheck
-
-      - name: Run tests
-        run: npm run test:ci
-
-  build:
-    needs: lint-and-test
+  ci:
     strategy:
       matrix:
         include:
@@ -61,15 +32,17 @@ jobs:
       - name: Install dependencies
         run: npm ci --force
 
+      - name: Run linter
+        run: npm run lint
+
+      - name: Run typecheck
+        run: npm run typecheck
+
+      - name: Run tests
+        run: npm run test:ci
+
       - name: Build application
-        run: |
-          if [ "${{ matrix.platform }}" == "linux" ]; then
-            npm run build:linux
-          elif [ "${{ matrix.platform }}" == "win" ]; then
-            npm run build:win
-          elif [ "${{ matrix.platform }}" == "mac" ]; then
-            npm run build:mac
-          fi
+        run: npm run build:${{ matrix.platform }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
