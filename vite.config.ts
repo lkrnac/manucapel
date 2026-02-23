@@ -41,8 +41,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src'),
-      'manucap': resolve(__dirname, 'node_modules/manucap/dist/manucap.mjs')
+      '@': resolve(__dirname, 'src')
     }
   },
   build: {
