@@ -1,7 +1,11 @@
 {
   "name": "manucapel",
   "version": "0.0.1",
-  "description": "",
+  "description": "Manucap desktop application",
+  "author": {
+    "name": "Lubos Krnac",
+    "email": "lubos.krnac@gmail.com"
+  },
   "main": "dist-electron/main.js",
   "license": "MIT",
   "scripts": {
