@@ -1,11 +1,16 @@
 import "primeicons/primeicons.css";
 import "primereact/resources/primereact.min.css";
 import "primereact/resources/themes/bootstrap4-light-blue/theme.css";
-import "./manucap.css";
-import { ReactElement, useEffect, useState } from "react";
+import "manucap/style";
+import { ComponentProps, ReactElement, useEffect, useState } from "react";
 import "draft-js/dist/Draft.css";
-import { CueDto, Language, SaveState, Track, User } from "manucap/dist/manucap/model";
-import { Actions } from "manucap";
+import { Actions, ManuCap } from "manucap";
+
+type Track = Parameters<typeof Actions.updateEditingTrack>[0];
+type CueDto = Parameters<typeof Actions.updateCues>[0][number];
+type User = Track['createdBy'];
+type Language = Track['language'];
+type SaveState = ComponentProps<typeof ManuCap>['saveState'];
 const {
     updateSourceCues,
     updateCues,
@@ -13,7 +18,6 @@ const {
     updateCaptionUser
 } = Actions;
 import { useAppDispatch } from "./hooks/useRedux";
-import { ManuCap } from "manucap";
 
 // ################## TESTING DATA TWEAKS ##############################
 const language = { id: "en-US", name: "English (US)", direction: "LTR" } as Language;
