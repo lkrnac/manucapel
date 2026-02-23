@@ -4,11 +4,11 @@ declare module 'manucap' {
   import { default as VideoPlayer } from 'manucap/dist/manucap/player/VideoPlayer';
   
   export const Actions: {
-    updateEditingTrack: (track: unknown) => unknown;
-    updateCues: (cues: unknown[]) => unknown;
-    updateSourceCues: (cues: unknown[]) => unknown;
-    updateCaptionUser: (user: unknown) => unknown;
-    readCaptionSpecification: (spec: unknown) => unknown;
+    updateEditingTrack: (track: unknown) => { type: string };
+    updateCues: (cues: unknown[]) => { type: string };
+    updateSourceCues: (cues: unknown[]) => { type: string };
+    updateCaptionUser: (user: unknown) => { type: string };
+    readCaptionSpecification: (spec: unknown) => { type: string };
   };
 
   export const Hooks: {
