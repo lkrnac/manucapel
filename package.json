@@ -11,10 +11,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && electron-builder --dir",
-    "build:win": "tsc && vite build && electron-builder --win",
-    "build:mac": "tsc && vite build && electron-builder --mac",
-    "build:linux": "tsc && vite build && electron-builder --linux",
-    "build:all": "tsc && vite build && electron-builder --win --mac --linux",
+    "build:win": "tsc && vite build && electron-builder --win --publish never",
+    "build:mac": "tsc && vite build && electron-builder --mac --publish never",
+    "build:linux": "tsc && vite build && electron-builder --linux --publish never",
+    "build:all": "tsc && vite build && electron-builder --win --mac --linux --publish never",
     "preview": "vite preview",
     "lint": "eslint src --ext ts,tsx",
     "typecheck": "tsc --noEmit",
@@ -132,8 +132,8 @@
     },
     "publish": {
       "provider": "github",
-      "owner": "YOUR_GITHUB_ORG",
-      "repo": "manucap-desktop"
+      "owner": "lkrnac",
+      "repo": "manucapel"
     }
   }
 }
