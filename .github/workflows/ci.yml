@@ -51,10 +51,9 @@ jobs:
         with:
           name: release-${{ matrix.platform }}
           path: |
-            release/**/*.dmg
-            release/**/*.zip
-            release/**/*.exe
-            release/**/*.AppImage
-            release/**/*.deb
-            release/**/*.rpm
+            release/*.dmg
+            release/*.exe
+            release/*.AppImage
+            release/*.deb
+            release/*.rpm
           retention-days: 5
