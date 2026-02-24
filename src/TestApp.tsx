@@ -90,6 +90,7 @@ const TestApp = (): ReactElement => {
 
     // ################################## Source Cues ###########################################
     useEffect(() => {
+        if (!videoUrl) return;
         if (trackType === "TRANSLATION") {
             const sourceCues = [] as CueDto[];
 
@@ -188,16 +189,17 @@ const TestApp = (): ReactElement => {
             }
 
 
-            setTimeout( // this simulates latency caused by server roundtrip
-
+            const timer = setTimeout( // this simulates latency caused by server roundtrip
                 () => dispatch(updateSourceCues(sourceCues)),
                 500
             );
+            return () => clearTimeout(timer);
         }
-    }, [dispatch]);
+    }, [dispatch, videoUrl]);
 
     // ################################## Target Cues ###########################################
     useEffect(() => {
+        if (!videoUrl) return;
         const targetCues = [] as CueDto[];
         if (TIME_MATCH_TESTING) {
             targetCues.push({
@@ -308,15 +310,17 @@ const TestApp = (): ReactElement => {
             });
         }
 
-        setTimeout( // this simulates latency caused by server roundtrip
+        const timer = setTimeout( // this simulates latency caused by server roundtrip
             () => dispatch(updateCues(targetCues)),
             500
         );
-    }, [dispatch]);
+        return () => clearTimeout(timer);
+    }, [dispatch, videoUrl]);
 
     // ################################## Track ###########################################
     useEffect(() => {
-        setTimeout( // this simulates latency caused by server roundtrip
+        if (!videoUrl) return;
+        const timer = setTimeout( // this simulates latency caused by server roundtrip
             () => dispatch(updateEditingTrack({
                 type: trackType,
                 language: language,
@@ -339,10 +343,12 @@ const TestApp = (): ReactElement => {
             } as Track)),
             500
         );
-    }, [dispatch]);
+        return () => clearTimeout(timer);
+    }, [dispatch, videoUrl]);
 
     // ################################## User ###########################################
     useEffect(() => {
+        if (!videoUrl) return;
         const captionUser = {
             displayName: "Jane Doe",
             email: "jane.doe@gmail.com",
@@ -351,11 +357,12 @@ const TestApp = (): ReactElement => {
             systemAdmin: "",
             userId: "jane.doe"
         } as User;
-        setTimeout(
+        const timer = setTimeout(
             () => dispatch(updateCaptionUser(captionUser)),
             500
         );
-    }, [dispatch]);
+        return () => clearTimeout(timer);
+    }, [dispatch, videoUrl]);
 
     // ################################## Caption Specs ###########################################
     // readCaptionSpecification is not available in the library's Actions export
