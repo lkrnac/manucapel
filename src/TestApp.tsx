@@ -5,6 +5,10 @@ import "manucap/style";
 import { ComponentProps, ReactElement, useEffect, useState } from "react";
 import "draft-js/dist/Draft.css";
 import { Actions, ManuCap } from "manucap";
+import { Dialog } from "primereact/dialog";
+import { InputText } from "primereact/inputtext";
+import { Button } from "primereact/button";
+import VideoDropZone from "./VideoDropZone";
 
 type Track = Parameters<typeof Actions.updateEditingTrack>[0];
 type CueDto = Parameters<typeof Actions.updateCues>[0][number];
@@ -27,7 +31,6 @@ const trackType = "TRANSLATION";
 // const trackType = "CAPTION";
 
 const TIME_MATCH_TESTING = false;
-const LONG_VIDEO_TESTING = true;
 
 const mediaChunkStart = undefined;
 const mediaChunkEnd = undefined;
@@ -55,9 +58,39 @@ const inChunkRange = (start: number, end: number): boolean => {
 const TestApp = (): ReactElement => {
     const dispatch = useAppDispatch();
     const [ saveState, setSaveState ] = useState<SaveState>("NONE");
+    const [ videoUrl, setVideoUrl ] = useState<string | null>(null);
+    const [ showUrlDialog, setShowUrlDialog ] = useState(false);
+    const [ urlInput, setUrlInput ] = useState('');
+
+    // ################################## Video Loading ###########################################
+    useEffect(() => {
+        const unsubscribeLocal = window.electronAPI.onVideoLoadLocal((filePath) => {
+            const normalized = filePath.replace(/\\/g, '/');
+            setVideoUrl(`local-video://${normalized}`);
+        });
+
+        const unsubscribeOnline = window.electronAPI.onMenuLoadVideoOnline(() => {
+            setShowUrlDialog(true);
+        });
+
+        return () => {
+            unsubscribeLocal();
+            unsubscribeOnline();
+        };
+    }, []);
+
+    const handleUrlDialogLoad = () => {
+        const url = urlInput.trim();
+        if (url) {
+            setVideoUrl(url);
+            setUrlInput('');
+            setShowUrlDialog(false);
+        }
+    };
 
     // ################################## Source Cues ###########################################
     useEffect(() => {
+        if (!videoUrl) return;
         if (trackType === "TRANSLATION") {
             const sourceCues = [] as CueDto[];
 
@@ -156,16 +189,17 @@ const TestApp = (): ReactElement => {
             }
 
 
-            setTimeout( // this simulates latency caused by server roundtrip
-
+            const timer = setTimeout( // this simulates latency caused by server roundtrip
                 () => dispatch(updateSourceCues(sourceCues)),
                 500
             );
+            return () => clearTimeout(timer);
         }
-    }, [dispatch]);
+    }, [dispatch, videoUrl]);
 
     // ################################## Target Cues ###########################################
     useEffect(() => {
+        if (!videoUrl) return;
         const targetCues = [] as CueDto[];
         if (TIME_MATCH_TESTING) {
             targetCues.push({
@@ -276,22 +310,24 @@ const TestApp = (): ReactElement => {
             });
         }
 
-        setTimeout( // this simulates latency caused by server roundtrip
+        const timer = setTimeout( // this simulates latency caused by server roundtrip
             () => dispatch(updateCues(targetCues)),
             500
         );
-    }, [dispatch]);
+        return () => clearTimeout(timer);
+    }, [dispatch, videoUrl]);
 
     // ################################## Track ###########################################
     useEffect(() => {
-        setTimeout( // this simulates latency caused by server roundtrip
+        if (!videoUrl) return;
+        const timer = setTimeout( // this simulates latency caused by server roundtrip
             () => dispatch(updateEditingTrack({
                 type: trackType,
                 language: language,
                 sourceLanguage,
                 default: true,
                 mediaTitle: "This is the video title",
-                mediaLength: LONG_VIDEO_TESTING ? 3612542 : 125526,
+                mediaLength: 3612542,
                 mediaChunkStart,
                 mediaChunkEnd,
                 progress: 50,
@@ -307,10 +343,12 @@ const TestApp = (): ReactElement => {
             } as Track)),
             500
         );
-    }, [dispatch]);
+        return () => clearTimeout(timer);
+    }, [dispatch, videoUrl]);
 
     // ################################## User ###########################################
     useEffect(() => {
+        if (!videoUrl) return;
         const captionUser = {
             displayName: "Jane Doe",
             email: "jane.doe@gmail.com",
@@ -319,11 +357,12 @@ const TestApp = (): ReactElement => {
             systemAdmin: "",
             userId: "jane.doe"
         } as User;
-        setTimeout(
+        const timer = setTimeout(
             () => dispatch(updateCaptionUser(captionUser)),
             500
         );
-    }, [dispatch]);
+        return () => clearTimeout(timer);
+    }, [dispatch, videoUrl]);
 
     // ################################## Caption Specs ###########################################
     // readCaptionSpecification is not available in the library's Actions export
@@ -350,48 +389,62 @@ const TestApp = (): ReactElement => {
     //     );
     // }, [dispatch]);
 
-    const video = LONG_VIDEO_TESTING
-        ? "https://ia802904.us.archive.org/0/items/TpbAfkThePirateBayAwayFromKeyboard/" +
-        "TPB.AFK.2013.480p.vp8-SimonKlose.mp4"
-        : "https://ia801209.us.archive.org/17/items/ElephantsDream/ed_1024.mp4";
-
-    const waveform = LONG_VIDEO_TESTING
-        ? "https://raw.githubusercontent.com/lkrnac/manucap/be95aaf9346d63a3424cdf94bd5c9f4660964bbf/test-data/" +
-        "TPB.AFK.2013.480p.vp8-SimonKlose.waveform.json"
-        : "https://raw.githubusercontent.com/lkrnac/manucap/b4513cf6751905f68efcce14655ded78b43acd8a/test-data/" +
-        "ed_1024.waveform.json";
-
-    const poster = LONG_VIDEO_TESTING
-        ? "https://archive.org/download/TpbAfkThePirateBayAwayFromKeyboard/TpbAfkThePirateBayAwayFromKeyboard.thumbs/" +
-        "TPB.AFK.2013.480p.vp8-SimonKlose_002670.jpg"
-        : "https://archive.org/download/ElephantsDream/ElephantsDream.thumbs/ed_1024_000090.jpg";
+    const urlDialogFooter = (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+            <Button label="Cancel" className="p-button-text" onClick={() => { setShowUrlDialog(false); setUrlInput(''); }} />
+            <Button label="Load" onClick={handleUrlDialogLoad} disabled={!urlInput.trim()} />
+        </div>
+    );
 
     return (
-        <ManuCap
-            poster={poster}
-            mp4={video}
-            waveform={waveform}
-            onViewTrackHistory={(): void => undefined}
-            onSave={(): void => {
-                setTimeout(() => setSaveState("TRIGGERED"), 1);
-                setTimeout(() => setSaveState("SAVED"), 500);
-            }}
-            onUpdateCue={(): void => {
-                setTimeout(() => setSaveState("TRIGGERED"), 1);
-                setTimeout(() => setSaveState("SAVED"), 500);
-            }}
-            onDeleteCue={(): void => {
-                setTimeout(() => setSaveState("TRIGGERED"), 1);
-                setTimeout(() => setSaveState("SAVED"), 500);
-            }}
-            onComplete={(): void => undefined}
-            onExportSourceFile={(): void => undefined}
-            onExportFile={(): void => undefined}
-            onImportFile={(): void => undefined}
-            spellCheckerDomain="dev-spell-checker.videotms.com"
-            commentAuthor="Linguist"
-            saveState={saveState}
-        />
+        <>
+            <Dialog
+                header="Load Online Video"
+                visible={showUrlDialog}
+                onHide={() => { setShowUrlDialog(false); setUrlInput(''); }}
+                footer={urlDialogFooter}
+                style={{ width: '520px' }}
+            >
+                <InputText
+                    value={urlInput}
+                    onChange={(e) => setUrlInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleUrlDialogLoad(); }}
+                    placeholder="https://example.com/video.mp4"
+                    style={{ width: '100%' }}
+                    autoFocus
+                />
+            </Dialog>
+
+            {!videoUrl ? (
+                <VideoDropZone onVideoLoaded={setVideoUrl} />
+            ) : (
+                <ManuCap
+                    key={videoUrl}
+                    mp4={videoUrl}
+                    poster=""
+                    onViewTrackHistory={(): void => undefined}
+                    onSave={(): void => {
+                        setTimeout(() => setSaveState("TRIGGERED"), 1);
+                        setTimeout(() => setSaveState("SAVED"), 500);
+                    }}
+                    onUpdateCue={(): void => {
+                        setTimeout(() => setSaveState("TRIGGERED"), 1);
+                        setTimeout(() => setSaveState("SAVED"), 500);
+                    }}
+                    onDeleteCue={(): void => {
+                        setTimeout(() => setSaveState("TRIGGERED"), 1);
+                        setTimeout(() => setSaveState("SAVED"), 500);
+                    }}
+                    onComplete={(): void => undefined}
+                    onExportSourceFile={(): void => undefined}
+                    onExportFile={(): void => undefined}
+                    onImportFile={(): void => undefined}
+                    spellCheckerDomain="dev-spell-checker.videotms.com"
+                    commentAuthor="Linguist"
+                    saveState={saveState}
+                />
+            )}
+        </>
     );
 };
 

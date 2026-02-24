@@ -31,6 +31,7 @@ export interface UpdateInfo {
 
 const electronAPI = {
   openFile: (): Promise<FileData | null> => ipcRenderer.invoke('dialog:openFile'),
+  openVideoFile: (): Promise<string | null> => ipcRenderer.invoke('dialog:openVideoFile'),
   saveFile: (content: string, defaultPath?: string): Promise<string | null> =>
     ipcRenderer.invoke('dialog:saveFile', { content, defaultPath }),
   saveToPath: (filePath: string, content: string): Promise<SaveResult> =>
@@ -71,6 +72,18 @@ const electronAPI = {
     const listener = (_: Electron.IpcRendererEvent, info: UpdateInfo) => callback(info)
     ipcRenderer.on('update-downloaded', listener)
     return () => ipcRenderer.removeListener('update-downloaded', listener)
+  },
+
+  onVideoLoadLocal: (callback: (filePath: string) => void) => {
+    const listener = (_: Electron.IpcRendererEvent, filePath: string) => callback(filePath)
+    ipcRenderer.on('video-load-local', listener)
+    return () => ipcRenderer.removeListener('video-load-local', listener)
+  },
+
+  onMenuLoadVideoOnline: (callback: () => void) => {
+    const listener = () => callback()
+    ipcRenderer.on('menu-load-video-online', listener)
+    return () => ipcRenderer.removeListener('menu-load-video-online', listener)
   }
 }
 
