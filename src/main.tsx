@@ -5,8 +5,7 @@ import App from './App'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  // StrictMode disabled - causes double-rendering issues with manucap's class components
-  // in development mode, resulting in duplicated waveform and video.js captions
+  // StrictMode disabled - due to video.js and waveform dependencies are not idempotent
   // <React.StrictMode>
     <Provider store={store}>
       <App />
