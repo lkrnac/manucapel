@@ -1,7 +1,8 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu, shell, protocol, net } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, Menu, shell, protocol } from 'electron'
 import { join } from 'path'
-import { readFile, writeFile } from 'fs/promises'
-import { existsSync, mkdirSync } from 'fs'
+import { readFile, writeFile, stat } from 'fs/promises'
+import { createReadStream, existsSync, mkdirSync } from 'fs'
+import { Readable } from 'stream'
 import log from 'electron-log'
 import { autoUpdater } from 'electron-updater'
 
@@ -15,6 +16,21 @@ autoUpdater.logger = log
 let mainWindow: BrowserWindow | null = null
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
+
+function getVideoMimeType(filePath: string): string {
+  const ext = filePath.split('.').pop()?.toLowerCase() ?? ''
+  const types: Record<string, string> = {
+    mp4: 'video/mp4', m4v: 'video/mp4',
+    webm: 'video/webm',
+    ogv: 'video/ogg', ogg: 'video/ogg',
+    avi: 'video/x-msvideo',
+    mkv: 'video/x-matroska',
+    mov: 'video/quicktime',
+    flv: 'video/x-flv',
+    wmv: 'video/x-ms-wmv'
+  }
+  return types[ext] ?? 'application/octet-stream'
+}
 
 // Must be called before app.whenReady() — enables range requests for video seeking
 protocol.registerSchemesAsPrivileged([
@@ -337,11 +353,45 @@ autoUpdater.on('error', (error) => {
 app.whenReady().then(() => {
   log.info('App ready')
 
-  // Serve local video files under local-video:// to bypass file:// cross-origin restrictions
-  protocol.handle('local-video', (request) => {
-    const path = request.url.slice('local-video://'.length)
-    const fileUrl = path.startsWith('/') ? `file://${path}` : `file:///${path}`
-    return net.fetch(fileUrl, { headers: request.headers })
+  // Serve local video files under local-video:// with full range-request support for seeking
+  protocol.handle('local-video', async (request) => {
+    const filePath = decodeURIComponent(request.url.slice('local-video://'.length))
+    try {
+      const { size } = await stat(filePath)
+      const mimeType = getVideoMimeType(filePath)
+      const rangeHeader = request.headers.get('range')
+
+      if (rangeHeader) {
+        const match = rangeHeader.match(/bytes=(\d+)-(\d*)/)
+        if (match) {
+          const start = parseInt(match[1], 10)
+          const end = match[2] ? parseInt(match[2], 10) : size - 1
+          const nodeStream = createReadStream(filePath, { start, end })
+          return new Response(Readable.toWeb(nodeStream) as ReadableStream, {
+            status: 206,
+            headers: {
+              'Content-Range': `bytes ${start}-${end}/${size}`,
+              'Accept-Ranges': 'bytes',
+              'Content-Length': String(end - start + 1),
+              'Content-Type': mimeType
+            }
+          })
+        }
+      }
+
+      const nodeStream = createReadStream(filePath)
+      return new Response(Readable.toWeb(nodeStream) as ReadableStream, {
+        status: 200,
+        headers: {
+          'Content-Length': String(size),
+          'Content-Type': mimeType,
+          'Accept-Ranges': 'bytes'
+        }
+      })
+    } catch (error) {
+      log.error('Error serving local video:', error)
+      return new Response('Not Found', { status: 404 })
+    }
   })
 
   createWindow()
