@@ -6,9 +6,9 @@ interface Props {
     onVideoLoaded: (url: string) => void;
 }
 
-function filePathToUrl(filePath: string): string {
+function filePathToLocalVideoUrl(filePath: string): string {
     const normalized = filePath.replace(/\\/g, '/');
-    return normalized.startsWith('/') ? `file://${normalized}` : `file:///${normalized}`;
+    return `local-video://${normalized}`;
 }
 
 const VideoDropZone = ({ onVideoLoaded }: Props): ReactElement => {
@@ -20,10 +20,7 @@ const VideoDropZone = ({ onVideoLoaded }: Props): ReactElement => {
         setIsDragging(false);
         const file = e.dataTransfer.files[0];
         if (file) {
-            const filePath = (file as File & { path?: string }).path;
-            if (filePath) {
-                onVideoLoaded(filePathToUrl(filePath));
-            }
+            onVideoLoaded(URL.createObjectURL(file));
         }
     };
 
@@ -35,7 +32,7 @@ const VideoDropZone = ({ onVideoLoaded }: Props): ReactElement => {
     const handleBrowse = async () => {
         const filePath = await window.electronAPI.openVideoFile();
         if (filePath) {
-            onVideoLoaded(filePathToUrl(filePath));
+            onVideoLoaded(filePathToLocalVideoUrl(filePath));
         }
     };
 

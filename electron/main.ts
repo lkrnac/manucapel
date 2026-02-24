@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, Menu, shell, protocol, net } from 'electron'
 import { join } from 'path'
 import { readFile, writeFile } from 'fs/promises'
 import { existsSync, mkdirSync } from 'fs'
@@ -15,6 +15,11 @@ autoUpdater.logger = log
 let mainWindow: BrowserWindow | null = null
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
+
+// Must be called before app.whenReady() — enables range requests for video seeking
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'local-video', privileges: { secure: true, standard: true, stream: true, supportFetchAPI: true } }
+])
 
 function createWindow() {
   log.info('Creating main window...')
@@ -331,6 +336,14 @@ autoUpdater.on('error', (error) => {
 
 app.whenReady().then(() => {
   log.info('App ready')
+
+  // Serve local video files under local-video:// to bypass file:// cross-origin restrictions
+  protocol.handle('local-video', (request) => {
+    const path = request.url.slice('local-video://'.length)
+    const fileUrl = path.startsWith('/') ? `file://${path}` : `file:///${path}`
+    return net.fetch(fileUrl)
+  })
+
   createWindow()
 
   if (!isDev) {

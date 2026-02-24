@@ -66,8 +66,7 @@ const TestApp = (): ReactElement => {
     useEffect(() => {
         const unsubscribeLocal = window.electronAPI.onVideoLoadLocal((filePath) => {
             const normalized = filePath.replace(/\\/g, '/');
-            const url = normalized.startsWith('/') ? `file://${normalized}` : `file:///${normalized}`;
-            setVideoUrl(url);
+            setVideoUrl(`local-video://${normalized}`);
         });
 
         const unsubscribeOnline = window.electronAPI.onMenuLoadVideoOnline(() => {
@@ -413,6 +412,7 @@ const TestApp = (): ReactElement => {
                 <VideoDropZone onVideoLoaded={setVideoUrl} />
             ) : (
                 <ManuCap
+                    key={videoUrl}
                     mp4={videoUrl}
                     poster=""
                     onViewTrackHistory={(): void => undefined}
