@@ -341,7 +341,7 @@ app.whenReady().then(() => {
   protocol.handle('local-video', (request) => {
     const path = request.url.slice('local-video://'.length)
     const fileUrl = path.startsWith('/') ? `file://${path}` : `file:///${path}`
-    return net.fetch(fileUrl)
+    return net.fetch(fileUrl, { headers: request.headers })
   })
 
   createWindow()
