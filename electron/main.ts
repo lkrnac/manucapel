@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, Menu, shell, protocol } from 'electron'
 import { join } from 'path'
 import { readFile, writeFile } from 'fs/promises'
 import { existsSync, mkdirSync } from 'fs'
@@ -15,6 +15,11 @@ autoUpdater.logger = log
 let mainWindow: BrowserWindow | null = null
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
+
+// Must be called before app.whenReady()
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'local-video', privileges: { secure: true, standard: true } }
+])
 
 function createWindow() {
   log.info('Creating main window...')
@@ -59,9 +64,17 @@ function createMenu() {
       label: 'File',
       submenu: [
         {
-          label: 'Open File',
-          accelerator: 'CmdOrCtrl+O',
-          click: () => handleOpenFile()
+          label: 'Load Video File',
+          submenu: [
+            {
+              label: 'Local Video File...',
+              click: () => handleLoadVideoFile()
+            },
+            {
+              label: 'Online URL...',
+              click: () => mainWindow?.webContents.send('menu-load-video-online')
+            }
+          ]
         },
         {
           label: 'Save File',
@@ -153,6 +166,23 @@ function createMenu() {
   Menu.setApplicationMenu(menu)
 }
 
+async function handleLoadVideoFile() {
+  if (!mainWindow) return
+
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: [
+      { name: 'Video Files', extensions: ['mp4', 'avi', 'mkv', 'mov', 'webm', 'ogv', 'm4v', 'flv', 'wmv'] },
+      { name: 'All Files', extensions: ['*'] }
+    ]
+  })
+
+  if (!result.canceled && result.filePaths.length > 0) {
+    mainWindow.webContents.send('video-load-local', result.filePaths[0])
+    log.info('Video file selected:', result.filePaths[0])
+  }
+}
+
 async function handleOpenFile() {
   if (!mainWindow) return
 
@@ -195,6 +225,24 @@ ipcMain.handle('dialog:openFile', async () => {
     const content = await readFile(filePath, 'utf-8')
     log.info('File opened via IPC:', filePath)
     return { filePath, content }
+  }
+  return null
+})
+
+ipcMain.handle('dialog:openVideoFile', async () => {
+  if (!mainWindow) return null
+
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: [
+      { name: 'Video Files', extensions: ['mp4', 'avi', 'mkv', 'mov', 'webm', 'ogv', 'm4v', 'flv', 'wmv'] },
+      { name: 'All Files', extensions: ['*'] }
+    ]
+  })
+
+  if (!result.canceled && result.filePaths.length > 0) {
+    log.info('Video file opened via IPC:', result.filePaths[0])
+    return result.filePaths[0]
   }
   return null
 })
@@ -288,6 +336,14 @@ autoUpdater.on('error', (error) => {
 
 app.whenReady().then(() => {
   log.info('App ready')
+
+  // Serve local video files — registerFileProtocol delegates to Chromium's native
+  // file handler which correctly handles range requests needed for seeking
+  protocol.registerFileProtocol('local-video', (request, callback) => {
+    const filePath = decodeURIComponent(request.url.slice('local-video://'.length))
+    callback({ path: filePath })
+  })
+
   createWindow()
 
   if (!isDev) {
