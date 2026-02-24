@@ -31,6 +31,7 @@ interface ReadResult {
 
 interface ElectronAPI {
   openFile(): Promise<FileData | null>
+  openVideoFile(): Promise<string | null>
   saveFile(content: string, defaultPath?: string): Promise<string | null>
   saveToPath(filePath: string, content: string): Promise<SaveResult>
   readFile(filePath: string): Promise<ReadResult>
@@ -42,6 +43,8 @@ interface ElectronAPI {
   onUpdateAvailable(callback: (info: UpdateInfo) => void): () => void
   onUpdateProgress(callback: (progress: UpdateProgress) => void): () => void
   onUpdateDownloaded(callback: (info: UpdateInfo) => void): () => void
+  onVideoLoadLocal(callback: (filePath: string) => void): () => void
+  onMenuLoadVideoOnline(callback: () => void): () => void
 }
 
 declare global {
