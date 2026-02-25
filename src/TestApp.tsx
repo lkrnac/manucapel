@@ -59,8 +59,50 @@ const TestApp = (): ReactElement => {
     const dispatch = useAppDispatch();
     const [ saveState, setSaveState ] = useState<SaveState>("NONE");
     const [ videoUrl, setVideoUrl ] = useState<string | null>(null);
+    const [ posterUrl, setPosterUrl ] = useState<string>("");
     const [ showUrlDialog, setShowUrlDialog ] = useState(false);
     const [ urlInput, setUrlInput ] = useState('');
+
+    // ################################## Poster Generation #######################################
+    useEffect(() => {
+        if (!videoUrl) return;
+
+        setPosterUrl("");
+        const video = document.createElement('video');
+        const canvas = document.createElement('canvas');
+        video.muted = true;
+        video.crossOrigin = 'anonymous';
+        video.preload = 'metadata';
+
+        const handleSeeked = (): void => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                try {
+                    setPosterUrl(canvas.toDataURL('image/jpeg', 0.8));
+                } catch {
+                    // Canvas tainted by cross-origin content — leave poster empty
+                }
+            }
+            video.src = '';
+        };
+
+        const handleLoadedMetadata = (): void => {
+            video.currentTime = Math.min(60, video.duration);
+        };
+
+        video.addEventListener('loadedmetadata', handleLoadedMetadata);
+        video.addEventListener('seeked', handleSeeked);
+        video.src = videoUrl;
+
+        return () => {
+            video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+            video.removeEventListener('seeked', handleSeeked);
+            video.src = '';
+        };
+    }, [videoUrl]);
 
     // ################################## Video Loading ###########################################
     useEffect(() => {
@@ -421,7 +463,7 @@ const TestApp = (): ReactElement => {
                 <ManuCap
                     key={videoUrl}
                     mp4={videoUrl}
-                    poster=""
+                    poster={posterUrl}
                     onViewTrackHistory={(): void => undefined}
                     onSave={(): void => {
                         setTimeout(() => setSaveState("TRIGGERED"), 1);

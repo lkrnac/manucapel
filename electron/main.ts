@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu, shell, protocol } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, Menu, shell, protocol, session } from 'electron'
 import { join } from 'path'
 import { readFile, writeFile } from 'fs/promises'
 import { existsSync, mkdirSync } from 'fs'
@@ -336,6 +336,16 @@ autoUpdater.on('error', (error) => {
 
 app.whenReady().then(() => {
   log.info('App ready')
+
+  // Allow canvas to read cross-origin video frames (needed for poster generation)
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Access-Control-Allow-Origin': ['*'],
+      }
+    })
+  })
 
   // Serve local video files — registerFileProtocol delegates to Chromium's native
   // file handler which correctly handles range requests needed for seeking
